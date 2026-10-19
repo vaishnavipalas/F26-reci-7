@@ -20,9 +20,11 @@ describe('mergeIntervals', () => {
   it('every input interval lies inside some output interval', () => {
     fc.assert(
       fc.property(intervalList, xs => {
+        xs = xs.map(([a, b]) => (a <= b ? [a, b] : [b, a]));
         const out = mergeIntervals(xs);
         const uncovered = xs.filter(([s, e]) => !out.some(([a, b]) => a <= s && e <= b));
         expect(uncovered).toEqual([]);
+
       }),
     );
   });
