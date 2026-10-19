@@ -12,7 +12,7 @@ import { mergeIntervals, type Interval } from '../src/intervals';
 
 // A first attempt at a generator. It has a problem: run the tests and read
 // the counterexample.
-const interval: fc.Arbitrary<Interval> = fc.tuple(fc.integer(), fc.integer());
+const interval: fc.Arbitrary<Interval> = fc.tuple(fc.integer(), fc.integer()).map(([a, b]) => (a <= b ? [a, b] : [b, a]));
 const intervalList = fc.array(interval);
 
 describe('mergeIntervals', () => {
@@ -20,7 +20,6 @@ describe('mergeIntervals', () => {
   it('every input interval lies inside some output interval', () => {
     fc.assert(
       fc.property(intervalList, xs => {
-        xs = xs.map(([a, b]) => (a <= b ? [a, b] : [b, a]));
         const out = mergeIntervals(xs);
         const uncovered = xs.filter(([s, e]) => !out.some(([a, b]) => a <= s && e <= b));
         expect(uncovered).toEqual([]);
