@@ -18,6 +18,7 @@ const wordFrom = (letters: string) =>
 const word = wordFrom(ALPHABET);
 
 describe('matchGuess', () => {
+  // pattern: invariant. The result always has exactly five colors.
   it('returns exactly five colors', () => {
     fc.assert(
       fc.property(word, word, (secret, guess) => {
@@ -25,6 +26,7 @@ describe('matchGuess', () => {
       }),
     );
   });
+  // pattern: invariant. The result only uses the colors G, Y, B.
   it('only uses the colors G, Y, B', () => {
     fc.assert(
       fc.property(word, word, (secret, guess) => {
@@ -32,23 +34,44 @@ describe('matchGuess', () => {
       }),
     );
   });
+
+  // Pattern: conditional. If the guess equals the secret, every color is green.
   it('guessing the secret gives all greens', () => {
+    const secretAndMatchingGuess = word.map(w => [w, w] as const);
     fc.assert(
-      fc.property(word, (w) => {
-        expect(matchGuess(w, w)).toEqual(['G', 'G', 'G', 'G', 'G']);
+      fc.property(secretAndMatchingGuess, ([secret, guess]) => {
+        expect(matchGuess(secret, guess)).toEqual(['G', 'G', 'G', 'G', 'G']);
       }),
     );
   });
+
+  // Pattern: invariant. Each letter is credited exactly min(count in guess, count in secret) times.
   it('never credits a letter more times than the secret contains it', () => {
     fc.assert(
       fc.property(word, word, (secret, guess) => {
         const result = matchGuess(secret, guess);
         for (const letter of new Set(guess)) {
           const credited = [...guess].filter((c, i) => c === letter && result[i] !== 'B').length;
+          const inGuess = [...guess].filter(c => c === letter).length;
           const inSecret = [...secret].filter(c => c === letter).length;
-          expect(credited).toBeLessThanOrEqual(inSecret);
+          expect(credited).toBe(Math.min(inGuess, inSecret));
         }
       }),
+    );
+  });
+
+  // Pattern: metamorphic. Consistently renaming letters in both words leaves the result unchanged.
+  it('renaming letters consistently does not change the result', () => {
+    fc.assert(
+      fc.property(
+        word,
+        word,
+        fc.shuffledSubarray([...ALPHABET], { minLength: ALPHABET.length, maxLength: ALPHABET.length }),
+        (secret, guess, targets) => {
+          const rename = (w: string) => [...w].map(c => targets[ALPHABET.indexOf(c)]).join('');
+          expect(matchGuess(rename(secret), rename(guess))).toEqual(matchGuess(secret, guess));
+        },
+      ),
     );
   });
 });
